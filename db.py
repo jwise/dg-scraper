@@ -4,7 +4,7 @@ import scraper
 def open(name):
   return sqlite3.connect(name)
 
-def createtables(db):
+def createtables_v0(db):
   db.executescript('''
 CREATE TABLE IF NOT EXISTS dates
   (id INTEGER PRIMARY KEY NOT NULL,
@@ -27,6 +27,18 @@ CREATE TABLE IF NOT EXISTS plays
 ''')
   db.commit()
 
+def migrate(db):
+  current_version = db.cursor().execute('PRAGMA user_version').fetchone()[0]
+  if current_version < 1: # null to 0 or 0 to 1 migration
+    print "Migrating to version 1..."
+    createtables_v0(db)
+    db.executescript('''
+ALTER TABLE dates ADD COLUMN lounge BIT;
+UPDATE dates SET lounge=0;
+PRAGMA user_version = 1;
+''')
+    db.commit()
+
 def updurls(db):
   urls = scraper.get_tracklists()
   c = db.cursor()
@@ -35,18 +47,20 @@ def updurls(db):
     c.execute('SELECT * FROM dates WHERE date=?;', (date,))
     if c.fetchone() is None:
       print "Inserting %s" % date
-      c.execute('INSERT INTO dates (date, url, imported) VALUES (?, ?, 0);', (date, urls[date], ))
+      c.execute('INSERT INTO dates (date, url, imported, lounge) VALUES (?, ?, 0, 0);', (date, urls[date], ))
   db.commit()
 
 def getone(db):
   c = db.cursor()
   
-  c.execute('SELECT id, date, url FROM dates WHERE imported=0;')
+  c.execute('SELECT id, date, url, lounge FROM dates WHERE imported=0;')
   next = c.fetchone()
   if next is None:
     return False
   
-  (id, date, url) = next
+  (id, date, url, lounge) = next
+  if lounge:
+    print "Skipping lounge from %s" % date
   print "Importing %s" % date
   
   try:
