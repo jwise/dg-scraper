@@ -1,11 +1,12 @@
+from __future__ import print_function
 import db,json
 import sys
 
-print >> sys.stderr, 'building object...'
-a = db.open('dg-new.db')
+print('building object...', file=sys.stderr)
+a = db.open('mg.db')
 obj = db.toobj(a)
 
-print >> sys.stderr, 'mangling object...'
+print('mangling object...', file=sys.stderr)
 
 # Precompute some data.
 artist_fwd = {}
@@ -28,9 +29,10 @@ zobj = {
   'songs': [ { '_i': v['id'], '_a': v['artistid'], '_t': v['title'], '_p': v['plays'] } for v in obj['songs'] ],
   'sets': [ { '_i': v['id'],
               '_d': v['date'],
-              '_p': [ [ v2['songid'], v2['request'] ] for v2 in v['plays'] ] 
+              '_p': [ [ v2['songid'], v2['request'] ] for v2 in v['plays'] ],
+              '_c': v['club'] 
             } for v in obj['sets'] ]
 }
 
-print >> sys.stderr, 'dumping json...'
-print json.dumps(zobj)
+print('dumping json...', file=sys.stderr)
+print(json.dumps(zobj))

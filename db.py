@@ -30,7 +30,7 @@ CREATE TABLE IF NOT EXISTS plays
 def migrate(db):
   current_version = db.cursor().execute('PRAGMA user_version').fetchone()[0]
   if current_version < 1: # null to 0 or 0 to 1 migration
-    print "Migrating to version 1..."
+    print("Migrating to version 1...")
     createtables_v0(db)
     db.executescript('''
 ALTER TABLE dates ADD COLUMN lounge BIT;
@@ -46,7 +46,7 @@ def updurls(db):
   for date in urls:
     c.execute('SELECT * FROM dates WHERE date=?;', (date,))
     if c.fetchone() is None:
-      print "Inserting %s" % date
+      print("Inserting %s" % date)
       c.execute('INSERT INTO dates (date, url, imported, lounge) VALUES (?, ?, 0, 0);', (date, urls[date], ))
   db.commit()
 
@@ -60,8 +60,8 @@ def getone(db):
   
   (id, date, url, lounge) = next
   if lounge:
-    print "Skipping lounge from %s" % date
-  print "Importing %s" % date
+    print("Skipping lounge from %s" % date)
+  print("Importing %s" % date)
   
   try:
     trs = scraper.url_to_tracklist(url)
@@ -87,7 +87,7 @@ def getone(db):
     c.execute('UPDATE dates SET imported=1 WHERE id=?;', (id, ))
     db.commit()
   except Exception as e:
-    print "*** exception", e
+    print("*** exception", e)
     db.rollback()
     return False
   
@@ -111,13 +111,17 @@ def toobj(db):
   r = c.fetchall()
   songs = [ { 'id': v[0], 'artistid': v[1], 'title': v[2] } for v in r ]
   
-  def getd(da):
-    c.execute('SELECT playorder, song, request FROM plays WHERE date=? ORDER BY playorder;', (da, ))
-    r = c.fetchall()
-    return [ { 'songid': v[1], 'request': v[2] == 1 } for v in r ]
+  def getclub(ev):
+    c.execute('SELECT title FROM events WHERE id=?;', (ev, ))
+    return c.fetchone()[0]
   
-  c.execute('SELECT id, date FROM dates;')
+  def getd(da):
+    c.execute('SELECT playorder, song FROM plays WHERE date=? ORDER BY playorder;', (da, ))
+    r = c.fetchall()
+    return [ { 'songid': v[1], 'request': False } for v in r ]
+  
+  c.execute('SELECT id, date, event FROM dates;')
   r = c.fetchall()
-  sets = [ { 'id': v[0], 'date': v[1], 'plays': getd(v[0]) } for v in r ]
+  sets = [ { 'id': v[0], 'date': v[1], 'plays': getd(v[0]), 'club': getclub(v[2]) } for v in r ]
   
   return { 'artists': artists, 'songs': songs, 'sets': sets }
