@@ -1,11 +1,11 @@
 import db,json
 import sys
 
-print >> sys.stderr, 'building object...'
+print('building object...', file=sys.stderr)
 a = db.open('dg-new.db')
 obj = db.toobj(a)
 
-print >> sys.stderr, 'mangling object...'
+print('mangling object...', file=sys.stderr)
 
 # Precompute some data.
 artist_fwd = {}
@@ -32,5 +32,5 @@ zobj = {
             } for v in obj['sets'] ]
 }
 
-print >> sys.stderr, 'dumping json...'
-print json.dumps(zobj)
+print('dumping json...', file=sys.stderr)
+print(json.dumps(zobj))
